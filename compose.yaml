@@ -1,0 +1,23 @@
+version: '3.8'
+services:
+  node-app:
+    build: ./app
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./uploads:/app/uploads
+    depends_on:
+      - duplicate-check
+    networks:
+      - shared-net
+  duplicate-check:
+    build: ./duplicate-check
+    volumes:
+      - ./uploads:/app/uploads
+    ports:
+      - "8000:8000"
+    networks:
+      - shared-net
+networks:
+  shared-net:
+    driver: bridge

@@ -11,6 +11,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/api/claim', claimRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/', (req, res) => res.json('app running'))
 app.use(errorHandler); // Catch-all error handler
 
 export default app;
