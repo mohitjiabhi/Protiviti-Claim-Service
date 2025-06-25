@@ -1,4 +1,4 @@
 uploads
 scripts/venv
-node_modules
+app/node_modules
 poppler-24.02.0
