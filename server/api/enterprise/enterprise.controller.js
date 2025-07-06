@@ -1,37 +1,26 @@
 import path from "path";
 import fs from "fs";
 import formidable from "formidable";
-import { spawn } from "child_process";
+import { checkDuplicate } from "../../handlers/duplicate.js";
+import { checkPdfEditForge } from "../../handlers/checkPdfEditForge.js";
+import { metadataCheck } from "../../handlers/metadataCheck.js";
+import { checkImageTempering } from "../../handlers/imageTempering.js";
+import { qrCodeCheck } from "../../handlers/qrCodeReader.js";
+import { copyMoveForge } from "../../handlers/copyMoveForge.js";
+import {UPLOAD_ROOT_DIR, ensureDirectoryExists} from '../../constants.js'
 // Constants
-const UPLOAD_ROOT_DIR = path.join(process.cwd(), "uploads");
 const CURRENT_DATA_DIR = "current_data";
 
 // Field names
 const FIELD_CHUNK = "chunk";
 const FIELD_UPLOAD_ID = "uploadId";
 const FIELD_INDEX = "index";
-const FIELD_FIELD_NAME = "fieldName";
 const FIELD_FILE_NAME = "fileName";
 const FIELD_TOTAL_CHUNKS = "totalChunks";
 const FIELD_REQUEST_ID = "requestId";
 
-const checksMapping = {
-  checkDuplicate: {
-    name: "Duplicate Forgery",
-    dirMapping: ["Input Files", "Image Files", "Excel Files"],
-  },
-};
-
 // Ensure root upload directory exists
-if (!fs.existsSync(UPLOAD_ROOT_DIR)) {
-  fs.mkdirSync(UPLOAD_ROOT_DIR, { recursive: true });
-}
-
-function ensureDirectoryExists(dirPath) {
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true });
-  }
-}
+ensureDirectoryExists(UPLOAD_ROOT_DIR)
 
 // Handle chunk upload
 export async function handleUploadChunk(req, res) {
@@ -52,9 +41,6 @@ export async function handleUploadChunk(req, res) {
     if (Array.isArray(uploadId)) uploadId = uploadId[0];
     if (Array.isArray(index)) index = index[0];
 
-    const fieldName = Array.isArray(fields[FIELD_FIELD_NAME])
-      ? fields[FIELD_FIELD_NAME][0]
-      : fields[FIELD_FIELD_NAME];
     const fileName = Array.isArray(fields[FIELD_FILE_NAME])
       ? fields[FIELD_FILE_NAME][0]
       : fields[FIELD_FILE_NAME];
@@ -68,12 +54,12 @@ export async function handleUploadChunk(req, res) {
     if (!uploadId || !index || !chunk) {
       return res.status(400).send("Missing required fields");
     }
-    const uploadIdWithFieldName = `${fieldName}_${uploadId}`;
+
     // save chunk to disk on this path
     const chunkDir = path.join(
       UPLOAD_ROOT_DIR,
       requestId,
-      uploadIdWithFieldName
+      uploadId
     );
     ensureDirectoryExists(chunkDir);
 
@@ -89,9 +75,9 @@ export async function handleUploadChunk(req, res) {
       // If it's the last chunk, trigger merging
       if (totalChunks) {
         await handleMergeChunk(
-          uploadIdWithFieldName,
+          uploadId,
           requestId,
-          `${fieldName}_${fileName}`,
+          fileName,
           totalChunks,
           res
         );
@@ -145,92 +131,38 @@ export async function handleMergeChunk(
 
 // Placeholder for process check
 export async function handleProcessCheck(req, res) {
-  const { requestId, checkDuplicate } = req.body;
+  const { requestId, checks } = req.body;
   if (!requestId) {
     return res.status(400).send("Missing requestId");
   }
-  if (checkDuplicate) {
-    const result = await runCheckDuplicate(requestId);
-    res.status(200).json(result);
-    return;
+  const promises = [];
+
+  if (checks.duplicate) {
+    promises.push(checkDuplicate(requestId));
   }
+
+  if (checks.pdfEditForge) {
+    promises.push(checkPdfEditForge(requestId));
+  }
+
+  if (checks.metadataChk) {
+    promises.push(metadataCheck(requestId));
+  }
+
+  if (checks.tamper) {
+    promises.push(checkImageTempering(requestId));
+  }
+
+  if (checks.copyMoveForge) {
+    promises.push(copyMoveForge(requestId));
+  }
+
+  if (checks.qrCode) {
+    promises.push(qrCodeCheck(requestId));
+  }
+
+  await Promise.all(promises);
+
   res.status(200).send("Check processing completed");
   // Implement logic here if needed
-}
-
-export async function runCheckDuplicate(requestId, res) {
-  const metadata = {};
-  const requestIdPath = path.join(UPLOAD_ROOT_DIR, requestId?.toString());
-  metadata.current_folder = path.resolve(path.join(requestIdPath, "current_data"));
-  const folders = checksMapping.checkDuplicate.dirMapping;
-  for (const folderName of folders) {
-    const destDir = path.join(
-      requestIdPath,
-      checksMapping.checkDuplicate.name,
-      folderName
-    );
-    ensureDirectoryExists(destDir);
-    if (folderName === "Input Files") {
-      metadata.input_folder = path.resolve(destDir);
-    }
-    if (folderName === "Excel Files") {
-      metadata.output_excel = path.resolve(destDir);
-      // Handle excel files if needed
-    }
-    if (folderName == "Image Files") {
-      metadata.image_folder = path.resolve(destDir);
-      // Handle image files if needed
-    }
-  }
-  console.log(`Metadata for request ${requestId}: checkDuplicate`, metadata);
-  const pythonExec = path.join(
-    process.cwd(),
-    "scripts",
-    "venv",
-    "bin",
-    "python"
-  ); // Update path for Windows if needed
-  const scriptPath = path.join(process.cwd(), "scripts", "duplicate_code.py");
-  metadata["poppler_path"] = path.join(
-    process.cwd(),
-    "scripts",
-    "poppler-24.02.0",
-    "Library",
-    "bin"
-  );
-  const metadataJson = JSON.stringify({ paths: metadata });
-  const baseString = Buffer.from(metadataJson).toString("base64");
-  console.log(metadataJson);
-  const result = await runPythonScript(pythonExec, scriptPath, baseString);
-  console.log('python script output:', result)
-  return result;
-}
-
-function runPythonScript(pythonExec, scriptPath, baseString) {
-  console.log(baseString);
-  return new Promise((resolve, reject) => {
-    const proc = spawn(pythonExec, [scriptPath, baseString], {
-      cwd: process.cwd(),
-    });
-
-    let responded = false;
-
-    proc.stdout.on("data", (data) => {
-      if (!responded) {
-        responded = true;
-        resolve({ success: true, output: data.toString() });
-      }
-    });
-
-    proc.stderr.on("data", (data) => {
-      if (!responded) {
-        responded = true;
-        reject({ success: false, error: data.toString() });
-      }
-    });
-
-    proc.on("close", (code) => {
-      console.log(`Python process exited with code ${code}`);
-    });
-  });
 }
