@@ -1,7 +1,7 @@
 import path from "path";
 import fs from "fs";
 import formidable from "formidable";
-
+import { spawn } from "child_process";
 // Constants
 const UPLOAD_ROOT_DIR = path.join(process.cwd(), "uploads");
 const CURRENT_DATA_DIR = "current_data";
@@ -122,32 +122,24 @@ export async function handleMergeChunk(
 
   try {
     const writeStream = fs.createWriteStream(finalFilePath);
-
     for (let i = 0; i < totalChunks; i++) {
       const chunkPath = path.join(chunkDir, String(i));
       if (!fs.existsSync(chunkPath)) {
         return res.status(400).send(`Chunk ${i} is missing`);
       }
-
       const data = fs.readFileSync(chunkPath);
       writeStream.write(data);
     }
 
     writeStream.end();
-
     writeStream.on("finish", () => {
       fs.rmSync(chunkDir, { recursive: true, force: true });
-      // Merging successful
-      // res.status(200).send('File merged successfully');
     });
-
     writeStream.on("error", (err) => {
       console.error("Merge write stream error:", err);
-      // res.status(500).send('Error during file merge');
     });
   } catch (err) {
     console.error("Error merging chunks:", err);
-    // res.status(500).send('Internal server error');
   }
 }
 
@@ -158,22 +150,25 @@ export async function handleProcessCheck(req, res) {
     return res.status(400).send("Missing requestId");
   }
   if (checkDuplicate) {
-    runCheckDuplicate(requestId);
+    const result = await runCheckDuplicate(requestId);
+    res.status(200).json(result);
+    return;
   }
-  // res.status(200).send("Check processing completed");
+  res.status(200).send("Check processing completed");
   // Implement logic here if needed
 }
 
-export async function runCheckDuplicate(requestId) {
+export async function runCheckDuplicate(requestId, res) {
   const metadata = {};
-  const requestIdPath = path.join(
-    UPLOAD_ROOT_DIR,
-    requestId?.toString(),
-    checksMapping.checkDuplicate.name
-  );
+  const requestIdPath = path.join(UPLOAD_ROOT_DIR, requestId?.toString());
+  metadata.current_folder = path.resolve(path.join(requestIdPath, "current_data"));
   const folders = checksMapping.checkDuplicate.dirMapping;
   for (const folderName of folders) {
-    const destDir = path.join(requestIdPath, folderName);
+    const destDir = path.join(
+      requestIdPath,
+      checksMapping.checkDuplicate.name,
+      folderName
+    );
     ensureDirectoryExists(destDir);
     if (folderName === "Input Files") {
       metadata.input_folder = path.resolve(destDir);
@@ -205,36 +200,37 @@ export async function runCheckDuplicate(requestId) {
   );
   const metadataJson = JSON.stringify({ paths: metadata });
   const baseString = Buffer.from(metadataJson).toString("base64");
-  const proc = spawn(pythonExec, [scriptPath, baseString], {
-    cwd: process.cwd(),
-  });
-  let responded = false;
+  console.log(metadataJson);
+  const result = await runPythonScript(pythonExec, scriptPath, baseString);
+  console.log('python script output:', result)
+  return result;
+}
 
-  proc.stdout.on("data", (data) => {
-    if (!responded) {
-      responded = true;
-      console.log(`stdout: ${data.toString()}`);
-      return res.status(200).json({
-        message: "Claim registered successfully",
-        claim_number,
-        output: data.toString(),
-      });
-    }
-  });
+function runPythonScript(pythonExec, scriptPath, baseString) {
+  console.log(baseString);
+  return new Promise((resolve, reject) => {
+    const proc = spawn(pythonExec, [scriptPath, baseString], {
+      cwd: process.cwd(),
+    });
 
-  proc.stderr.on("data", (data) => {
-    if (!responded) {
-      responded = true;
-      console.error(`stderr: ${data.toString()}`);
-      return res.status(500).json({
-        message: "Claim processing failed",
-        claim_number,
-        error: data.toString(),
-      });
-    }
-  });
+    let responded = false;
 
-  proc.on("close", (code) => {
-    console.log(`Python process exited with code ${code}`);
+    proc.stdout.on("data", (data) => {
+      if (!responded) {
+        responded = true;
+        resolve({ success: true, output: data.toString() });
+      }
+    });
+
+    proc.stderr.on("data", (data) => {
+      if (!responded) {
+        responded = true;
+        reject({ success: false, error: data.toString() });
+      }
+    });
+
+    proc.on("close", (code) => {
+      console.log(`Python process exited with code ${code}`);
+    });
   });
 }

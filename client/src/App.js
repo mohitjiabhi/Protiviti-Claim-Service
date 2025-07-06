@@ -3,11 +3,12 @@ import axios from "axios";
 import "./App.css";
 
 function App() {
-  const CHUNK_SIZE = 1 * 1024 * 1024; // 1 MB
+  const CHUNK_SIZE = 5 * 1024 * 1024; // 1 MB
   const [files, setFiles] = useState([]);
   const [fileFields, setFileFields] = useState({}); // { fileName: fieldName }
   const [progress, setProgress] = useState({});
   const [uploading, setUploading] = useState(false);
+  const [output, setOutput] = useState("");
 
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files);
@@ -38,7 +39,7 @@ function App() {
       formData.append("requestId", requestId);
       formData.append("fieldName", fileFields[file.name] || "");
       console.log(index, totalChunks);
-      if (index == totalChunks - 1) {
+      if (index === totalChunks - 1) {
         formData.append("totalChunks", totalChunks);
       }
       await axios.post(
@@ -69,7 +70,7 @@ function App() {
         await uploadFileInChunks(requestId, file);
       });
       await Promise.all(uploadMap);
-      await axios.post(
+      const response = await axios.post(
         "http://localhost:5000/enterprise/process",
         {
           "requestId": requestId,
@@ -77,10 +78,10 @@ function App() {
         },
         { headers: { "Content-Type": "application/json" } }
       );
-      alert("All files uploaded successfully!");
+      setOutput(JSON.stringify(response?.data?.output))
     } catch (err) {
       console.error("Upload error", err);
-      alert("Upload failed!");
+      setOutput('Failed !!!')
     } finally {
       setUploading(false);
     }
@@ -140,6 +141,7 @@ function App() {
       >
         {uploading ? "Uploading..." : "Upload"}
       </button>
+      <span>{output}</span>
     </div>
   );
 }
