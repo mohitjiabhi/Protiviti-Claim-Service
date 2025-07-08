@@ -1,84 +1,70 @@
 import path from "path";
-import fs from "fs";
 import fsExtra from "fs-extra";
-import formidable from "formidable";
-import {
-  UPLOAD_ROOT_DIR,
-  ensureDirectoryExists,
-} from "../../constants.js";
+// import { promisify } from 'util';
+// import formidable from 'formidable';
+import { UPLOAD_ROOT_DIR, ensureDirectoryExists } from "../../constants.js";
 import { isZipFile, unzip } from "../../utils/zip.js";
-import { mergeChunk } from "../../utils/chunk.js";
-import {checkHandlers} from './constants.js'
-import db from '../../configs/db/index.js'
+import {
+  mergeChunk,
+  normalizeFormidableFields,
+  parseForm,
+  uploadChunk,
+} from "../../utils/upload.js";
+import { checkHandlers } from "./constants.js";
+import db from "../../configs/db/index.js";
 // Constants
 const CURRENT_DATA_DIR = "current_data";
 const fse = fsExtra;
-
-// Field names
-const FIELD_CHUNK = "chunk";
-const FIELD_UPLOAD_ID = "uploadId";
-const FIELD_INDEX = "index";
-const FIELD_FILE_NAME = "fileName";
-const FIELD_TOTAL_CHUNKS = "totalChunks";
-const FIELD_REQUEST_ID = "requestId";
 
 // Ensure root upload directory exists
 ensureDirectoryExists(UPLOAD_ROOT_DIR);
 
 // Handle chunk upload
 export async function handleUploadChunk(req, res) {
-  const form = formidable();
-  form.parse(req, async (err, fields, files) => {
-    if (err) {
-      console.error("Form parse error:", err);
-      return res.status(500).send("Error parsing the files");
-    }
+  try {
+    // const form = formidable();
+    // const parseAsync = promisify(form.parse.bind(form));
 
-    let uploadId = fields[FIELD_UPLOAD_ID];
-    let index = fields[FIELD_INDEX];
-    let chunk = files[FIELD_CHUNK];
+    // Field names
+    const FIELD_CHUNK = "chunk";
+    const FIELD_UPLOAD_ID = "uploadId";
+    const FIELD_INDEX = "index";
+    const FIELD_FILE_NAME = "fileName";
+    const FIELD_TOTAL_CHUNKS = "totalChunks";
+    const FIELD_REQUEST_ID = "requestId";
+    const { fields, files } = await parseForm(req);
+    const fieldNormalize = normalizeFormidableFields(fields, [
+      FIELD_UPLOAD_ID,
+      FIELD_INDEX,
+      FIELD_FILE_NAME,
+      FIELD_TOTAL_CHUNKS,
+      FIELD_REQUEST_ID,
+    ]);
+    const fileNormalize = normalizeFormidableFields(files, [FIELD_CHUNK]);
+    const normalize = { ...fieldNormalize, ...fileNormalize };
 
-    // Normalize single values from arrays
-    if (Array.isArray(chunk)) chunk = chunk[0];
-    if (Array.isArray(uploadId)) uploadId = uploadId[0];
-    if (Array.isArray(index)) index = index[0];
-
-    const fileName = Array.isArray(fields[FIELD_FILE_NAME])
-      ? fields[FIELD_FILE_NAME][0]
-      : fields[FIELD_FILE_NAME];
-    const totalChunks = Array.isArray(fields[FIELD_TOTAL_CHUNKS])
-      ? Number(fields[FIELD_TOTAL_CHUNKS][0])
-      : null;
-    const requestId = Array.isArray(fields[FIELD_REQUEST_ID])
-      ? fields[FIELD_REQUEST_ID][0]
-      : fields[FIELD_REQUEST_ID];
-
-    if (!uploadId || !index || !chunk) {
+    if (!normalize.uploadId || !normalize.index || !normalize.chunk) {
       return res.status(400).send("Missing required fields");
     }
-
-    // save chunk to disk on this path
-    const chunkDir = path.join(UPLOAD_ROOT_DIR, requestId, uploadId);
-    ensureDirectoryExists(chunkDir);
-
-    const chunkPath = path.join(chunkDir, index);
-
-    // rename the uploaded file to the chunk path
-    fs.rename(chunk.filepath, chunkPath, async (err) => {
-      if (err) {
-        console.error("Error saving chunk:", err);
-        return res.status(500).send("Error saving chunk");
-      }
-
-      // If it's the last chunk, trigger merging
-      if (totalChunks) {
-        await handleMergeChunk(uploadId, requestId, fileName, totalChunks, res);
-        return;
-      }
-
-      res.status(200).send("Chunk uploaded");
-    });
-  });
+    await uploadChunk(
+      UPLOAD_ROOT_DIR,
+      normalize.requestId,
+      normalize.uploadId,
+      normalize.chunk,
+      normalize.index
+    );
+    if (normalize.totalChunks) {
+      await handleMergeChunk(
+        normalize.uploadId,
+        normalize.requestId,
+        normalize.fileName,
+        normalize.totalChunks
+      );
+    }
+    res.status(200).send({ status: true, message: "done", data: {} });
+  } catch (e) {
+    res.status(400).send({ status: false, message: e.message, data: null });
+  }
 }
 
 // Merge all uploaded chunks into a final file
@@ -86,8 +72,7 @@ export async function handleMergeChunk(
   uploadId,
   requestId,
   fileName,
-  totalChunks,
-  res
+  totalChunks
 ) {
   if (!uploadId || !fileName || !totalChunks) {
     return res.status(400).send("Missing required fields");
@@ -107,11 +92,10 @@ export async function handleMergeChunk(
       console.log("Detected ZIP. Processing...");
       await unzip(finalFilePath, outputDir);
     }
-    res.status(200).send({output: 'done'})
   } catch (err) {
     console.error("Error merging chunks:", err);
     await fse.remove(requestDir);
-    res.status(400).json({output: err.message})
+    throw err;
   }
 }
 
@@ -120,9 +104,10 @@ export async function handleExecuteChecks(req, res) {
   if (!requestId) {
     return res.status(400).send("Missing requestId");
   }
-  await db.query('INSERT INTO transaction_status (employee_id, session_id, process_timestamp, status) VALUES (?, ?, ?, ?)', [
-    1, requestId, new Date(), 'pending'
-  ]);
+  await db.query(
+    "INSERT INTO transaction_status (employee_id, session_id, process_timestamp, status) VALUES (?, ?, ?, ?)",
+    [1, requestId, new Date(), "pending"]
+  );
   const promises = [];
   const keys = Object.keys(req.body.checks);
   keys.forEach((key) => promises.push(checkHandlers[key]));

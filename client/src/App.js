@@ -79,9 +79,9 @@ function App() {
         { headers: { "Content-Type": "application/json" } }
       );
 
-      setOutput(JSON.stringify(response?.data?.output || "Done"));
+      setOutput(JSON.stringify(response?.data?.message || "Done"));
     } catch (err) {
-      const message =  err?.response?.data?.output || 'failed';
+      const message =  err?.response?.data?.message || 'failed';
       setOutput(message);
     } finally {
       setUploading(false);
