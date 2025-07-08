@@ -4,5 +4,9 @@
   },
   "devDependencies": {
     "concurrently": "^9.2.0"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "fs-extra": "^11.3.0"
   }
 }

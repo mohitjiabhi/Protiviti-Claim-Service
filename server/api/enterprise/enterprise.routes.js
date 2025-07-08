@@ -1,9 +1,9 @@
 import express from 'express';
-import { handleProcessCheck, handleUploadChunk } from "./enterprise.controller.js";
+import { handleExecuteChecks, handleUploadChunk } from "./enterprise.controller.js";
 const router = express.Router();
 
 router.post('/upload-chunk', handleUploadChunk);
 
-router.post('/process', handleProcessCheck);
+router.post('/process', handleExecuteChecks);
 
 export default router;

@@ -81,8 +81,8 @@ function App() {
 
       setOutput(JSON.stringify(response?.data?.output || "Done"));
     } catch (err) {
-      console.error("Upload error", err);
-      setOutput("Failed!");
+      const message =  err?.response?.data?.output || 'failed';
+      setOutput(message);
     } finally {
       setUploading(false);
     }

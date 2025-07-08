@@ -1,15 +1,17 @@
 import path from "path";
 import fs from "fs";
+import fsExtra from "fs-extra";
 import formidable from "formidable";
-import { checkDuplicate } from "../../handlers/duplicate.js";
-import { checkPdfEditForge } from "../../handlers/checkPdfEditForge.js";
-import { metadataCheck } from "../../handlers/metadataCheck.js";
-import { checkImageTempering } from "../../handlers/imageTempering.js";
-import { qrCodeCheck } from "../../handlers/qrCodeReader.js";
-import { copyMoveForge } from "../../handlers/copyMoveForge.js";
-import {UPLOAD_ROOT_DIR, ensureDirectoryExists} from '../../constants.js'
+import {
+  UPLOAD_ROOT_DIR,
+  ensureDirectoryExists,
+} from "../../constants.js";
+import { isZipFile, unzip } from "../../utils/zip.js";
+import { mergeChunk } from "../../utils/chunk.js";
+import {checkHandlers} from './constants.js'
 // Constants
 const CURRENT_DATA_DIR = "current_data";
+const fse = fsExtra;
 
 // Field names
 const FIELD_CHUNK = "chunk";
@@ -20,12 +22,11 @@ const FIELD_TOTAL_CHUNKS = "totalChunks";
 const FIELD_REQUEST_ID = "requestId";
 
 // Ensure root upload directory exists
-ensureDirectoryExists(UPLOAD_ROOT_DIR)
+ensureDirectoryExists(UPLOAD_ROOT_DIR);
 
 // Handle chunk upload
 export async function handleUploadChunk(req, res) {
   const form = formidable();
-
   form.parse(req, async (err, fields, files) => {
     if (err) {
       console.error("Form parse error:", err);
@@ -56,11 +57,7 @@ export async function handleUploadChunk(req, res) {
     }
 
     // save chunk to disk on this path
-    const chunkDir = path.join(
-      UPLOAD_ROOT_DIR,
-      requestId,
-      uploadId
-    );
+    const chunkDir = path.join(UPLOAD_ROOT_DIR, requestId, uploadId);
     ensureDirectoryExists(chunkDir);
 
     const chunkPath = path.join(chunkDir, index);
@@ -74,13 +71,8 @@ export async function handleUploadChunk(req, res) {
 
       // If it's the last chunk, trigger merging
       if (totalChunks) {
-        await handleMergeChunk(
-          uploadId,
-          requestId,
-          fileName,
-          totalChunks,
-          res
-        );
+        await handleMergeChunk(uploadId, requestId, fileName, totalChunks, res);
+        return;
       }
 
       res.status(200).send("Chunk uploaded");
@@ -102,67 +94,34 @@ export async function handleMergeChunk(
 
   const chunkDir = path.join(UPLOAD_ROOT_DIR, requestId, uploadId);
   const outputDir = path.join(UPLOAD_ROOT_DIR, requestId, CURRENT_DATA_DIR);
+  const requestDir = path.join(UPLOAD_ROOT_DIR, requestId);
   const finalFilePath = path.join(outputDir, fileName);
-
-  ensureDirectoryExists(outputDir);
-
+  await fse.ensureDir(outputDir);
   try {
-    const writeStream = fs.createWriteStream(finalFilePath);
-    for (let i = 0; i < totalChunks; i++) {
-      const chunkPath = path.join(chunkDir, String(i));
-      if (!fs.existsSync(chunkPath)) {
-        return res.status(400).send(`Chunk ${i} is missing`);
-      }
-      const data = fs.readFileSync(chunkPath);
-      writeStream.write(data);
+    // handle chunk
+    await mergeChunk(chunkDir, outputDir, fileName);
+    // zip process if file is zip
+    const isZip = await isZipFile(finalFilePath);
+    if (isZip) {
+      console.log("Detected ZIP. Processing...");
+      await unzip(finalFilePath, outputDir);
     }
-
-    writeStream.end();
-    writeStream.on("finish", () => {
-      fs.rmSync(chunkDir, { recursive: true, force: true });
-    });
-    writeStream.on("error", (err) => {
-      console.error("Merge write stream error:", err);
-    });
+    res.status(200).send({output: 'done'})
   } catch (err) {
     console.error("Error merging chunks:", err);
+    await fse.remove(requestDir);
+    res.status(400).json({output: err.message})
   }
 }
 
-// Placeholder for process check
-export async function handleProcessCheck(req, res) {
-  const { requestId, checks } = req.body;
+export async function handleExecuteChecks(req, res) {
+  const { requestId } = req.body;
   if (!requestId) {
     return res.status(400).send("Missing requestId");
   }
   const promises = [];
-
-  if (checks.duplicate) {
-    promises.push(checkDuplicate(requestId));
-  }
-
-  if (checks.pdfEditForge) {
-    promises.push(checkPdfEditForge(requestId));
-  }
-
-  if (checks.metadataChk) {
-    promises.push(metadataCheck(requestId));
-  }
-
-  if (checks.tamper) {
-    promises.push(checkImageTempering(requestId));
-  }
-
-  if (checks.copyMoveForge) {
-    promises.push(copyMoveForge(requestId));
-  }
-
-  if (checks.qrCode) {
-    promises.push(qrCodeCheck(requestId));
-  }
-
+  const keys = Object.keys(req.body.checks);
+  keys.forEach((key) => promises.push(checkHandlers[key]));
   await Promise.all(promises);
-
   res.status(200).send("Check processing completed");
-  // Implement logic here if needed
 }
