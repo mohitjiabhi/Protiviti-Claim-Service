@@ -1,7 +1,5 @@
 import path from "path";
 import fsExtra from "fs-extra";
-// import { promisify } from 'util';
-// import formidable from 'formidable';
 import { UPLOAD_ROOT_DIR, ensureDirectoryExists } from "../../constants.js";
 import { isZipFile, unzip } from "../../utils/zip.js";
 import {
@@ -22,9 +20,6 @@ ensureDirectoryExists(UPLOAD_ROOT_DIR);
 // Handle chunk upload
 export async function handleUploadChunk(req, res) {
   try {
-    // const form = formidable();
-    // const parseAsync = promisify(form.parse.bind(form));
-
     // Field names
     const FIELD_CHUNK = "chunk";
     const FIELD_UPLOAD_ID = "uploadId";

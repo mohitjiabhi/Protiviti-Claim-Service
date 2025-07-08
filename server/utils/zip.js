@@ -10,54 +10,32 @@ export const isZipFile = async (filePath) => {
          buffer[3] === 0x04;
 };
 
-export async function IsZipInsideZip(zipPath) {
-  const extractedFiles = await fse.readdir(zipPath);
-  return extractedFiles.some(file => file.endsWith('.zip'));
-}
-
-export async function unzip(zipPath, targetPath) {
+export async function unzip(zipPath, destDir, prefixZipName = false) {
   try {
-    const zipName = path.parse(zipPath).name;
-    const zipDir = path.join(targetPath, zipName);
-    await fse.ensureDir(zipDir);
     const zip = new AdmZip(zipPath);
-    zip.extractAllTo(zipDir, true)
-    // has any os specific files
-    const macosxDir = path.join(zipDir, '__MACOSX');
-    if (await fse.pathExists(macosxDir)) {
-      await fse.remove(macosxDir);
-    }
-    const hasNestedZip = await IsZipInsideZip(zipDir);
-    if(hasNestedZip) {
-      await fse.remove(zipPath)
-      await fse.remove(zipDir);
-      throw new Error('zip should not have another zip');
-    }
-    await flattenAndPrefixFiles(zipDir, targetPath);
-    await fse.remove(zipPath)
-    await fse.remove(zipDir);
-  } catch(e) {
-    console.log('unzip failed', e)
-    throw e;
-  }
-}
-
-export async function flattenAndPrefixFiles(sourceDir, targetDir) {
-  const entries = await fse.readdir(sourceDir, { withFileTypes: true });
-  for (const entry of entries) {
-    const fullPath = path.join(sourceDir, entry.name);
-    if (entry.isDirectory()) {
-      const subFiles = await fse.readdir(fullPath);
-      for (const file of subFiles) {
-        const oldPath = path.join(fullPath, file);
-        const prefixedName = `${entry.name}_${file}`;
-        const newPath = path.join(targetDir, prefixedName);
-        await fse.move(oldPath, newPath);
+    const zipEntries = zip.getEntries();
+    for(const entry of zipEntries) {
+      if(entry.isDirectory) continue;
+      const originalPath = entry.entryName;
+      if (originalPath.includes('__MACOSX')) continue;
+      const ext = path.extname(originalPath).toLowerCase();
+      const basename = path.basename(originalPath);
+      const folderPrefix = path.dirname(originalPath).split(path.sep).filter(Boolean).join("_");
+      let prefixName = folderPrefix && folderPrefix != '.' ? `${folderPrefix}_${basename}`: basename;
+      if(prefixZipName) {
+        const zipName = path.basename(zipPath, path.extname(zipPath))
+        prefixName = `${zipName}_${prefixName}`
       }
-      await fse.remove(fullPath); // remove now-empty folder
-    } else {
-      const newPath = path.join(targetDir, entry.name);
-      await fse.move(fullPath, newPath);
+      const destFilePath = path.join(destDir, prefixName);
+      await fse.ensureDir(destDir);
+      await fse.writeFile(destFilePath, entry.getData(), { overwrite: true });
+      if(ext == '.zip') {
+        await unzip(destFilePath, destDir, true);
+      }
     }
+      await fse.remove(zipPath);
+  } catch(er) {
+    console.log('error while unzipping', er);
+    throw new Error('zip processing failed')
   }
 }
