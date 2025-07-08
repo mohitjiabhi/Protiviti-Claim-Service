@@ -1,5 +1,6 @@
 // app.js
 import express from 'express';
+console.log(process.env.PORT);
 import claimRoutes from './api/claim/claim.route.js'
 import authRoutes from './api/auth/auth.route.js'
 import enterpriseRoutes from './api/enterprise/enterprise.routes.js';

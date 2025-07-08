@@ -9,6 +9,7 @@ import {
 import { isZipFile, unzip } from "../../utils/zip.js";
 import { mergeChunk } from "../../utils/chunk.js";
 import {checkHandlers} from './constants.js'
+import db from '../../configs/db/index.js'
 // Constants
 const CURRENT_DATA_DIR = "current_data";
 const fse = fsExtra;
@@ -119,6 +120,9 @@ export async function handleExecuteChecks(req, res) {
   if (!requestId) {
     return res.status(400).send("Missing requestId");
   }
+  await db.query('INSERT INTO transaction_status (employee_id, session_id, process_timestamp, status) VALUES (?, ?, ?, ?)', [
+    1, requestId, new Date(), 'pending'
+  ]);
   const promises = [];
   const keys = Object.keys(req.body.checks);
   keys.forEach((key) => promises.push(checkHandlers[key]));
