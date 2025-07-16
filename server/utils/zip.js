@@ -20,7 +20,7 @@ export async function unzip(zipPath, destDir, prefixZipName = false) {
       if (originalPath.includes('__MACOSX')) continue;
       const ext = path.extname(originalPath).toLowerCase();
       const basename = path.basename(originalPath);
-      const folderPrefix = path.dirname(originalPath).split(path.sep).filter(Boolean).join("_");
+      const folderPrefix = path.dirname(originalPath).split("/").filter(Boolean).join("_");
       let prefixName = folderPrefix && folderPrefix != '.' ? `${folderPrefix}_${basename}`: basename;
       if(prefixZipName) {
         const zipName = path.basename(zipPath, path.extname(zipPath))
