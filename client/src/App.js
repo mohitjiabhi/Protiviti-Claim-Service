@@ -54,7 +54,7 @@ function App() {
             formData.append("totalChunks", totalChunks);
           }
 
-          await axios.post("http://localhost:5000/enterprise/upload-chunk", formData, {
+          await axios.post("http://localhost:5001/enterprise/upload-chunk", formData, {
             headers: { "Content-Type": "multipart/form-data" },
           });
 
@@ -64,7 +64,7 @@ function App() {
       }
 
       const response = await axios.post(
-        "http://localhost:5000/enterprise/process",
+        "http://localhost:5001/enterprise/process",
         {
           requestId,
           checks: {

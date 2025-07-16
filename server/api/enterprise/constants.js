@@ -16,10 +16,10 @@ export const checksMappingWithPythonFile = {
 
 
 export const checkHandlers =  {
-  'duplicate': (requestId) => checkDuplicate,
-  'pdfEditForge': (requestId) => checkPdfEditForge,
-  'metadataChk': (requestId) => metadataCheck,
-  'tamper': (requestId) => checkImageTempering,
-  'copyMoveForge': (requestId) => copyMoveForge,
-  'qrCode': (requestId) => qrCodeCheck,
+  'duplicate': (requestId) => checkDuplicate(requestId),
+  'pdfEditForge': (requestId) => checkPdfEditForge(requestId),
+  'metadataCheck': (requestId) => metadataCheck(requestId),
+  'tamper': (requestId) => checkImageTempering(requestId),
+  'copyMoveForge': (requestId) => copyMoveForge(requestId),
+  'qrCode': (requestId) => qrCodeCheck(requestId),
 }

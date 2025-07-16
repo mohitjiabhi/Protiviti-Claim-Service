@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  react:
+    build: ./client
+    ports:
+      - "3001:3000"
+    depends_on:
+      - node-app
+    networks:
+      - shared-net
+
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_USER: testuser
+      MYSQL_PASSWORD: testpass
+      MYSQL_DATABASE: testdb
+    ports:
+      - "3306:3306"
+    networks:
+      - shared-net
+    volumes:
+      - ./db-data:/var/lib/mysql
+
+  node-app:
+    build: ./server
+    ports:
+      - "5001:5000"
+    volumes:
+      - ./uploads:/app/uploads
+    depends_on:
+      - db
+    networks:
+      - shared-net
+
+  duplicate-forge:
+    build: ./duplicate-forge
+    volumes:
+      - ./uploads:/app/uploads
+    networks:
+      - shared-net
+  copy-move-forge:
+    build: ./copy-move-forge
+    volumes:
+      - ./uploads:/app/uploads
+    networks:
+      - shared-net
+  image-tempering-forge:
+    build: ./image-tempering-forge
+    volumes:
+      - ./uploads:/app/uploads
+    networks:
+      - shared-net
+  metadata-check-forge:
+    build: ./metadata-check-forge
+    volumes:
+      - ./uploads:/app/uploads
+    networks:
+      - shared-net
+  qr-code-forge:
+    build: ./qr-code-forge
+    volumes:
+      - ./uploads:/app/uploads
+    networks:
+      - shared-net
+  pdf-edit-forge:
+    build: ./pdf-edit-forge
+    volumes:
+      - ./uploads:/app/uploads
+    networks:
+      - shared-net
+networks:
+  shared-net:
+    driver: bridge

@@ -27,7 +27,7 @@ export async function uploadChunk(targetPath, requestId, name, chunk, index ) {
   const chunkDir = path.join(targetPath, requestId, name);
   ensureDirectoryExists(chunkDir);
   const chunkPath = path.join(chunkDir, index);
-  await fse.rename(chunk.filepath, chunkPath);
+  await fse.copyFile(chunk.filepath, chunkPath);
 }
 
 export function normalizeFormidableFields(fields, keys) {

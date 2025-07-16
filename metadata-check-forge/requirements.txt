@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+python-multipart
+opencv-python
+pillow
+numpy
+pandas
+openpyxl
+distance
+Pillow
+pdf2image

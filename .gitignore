@@ -1,4 +1,5 @@
 uploads
+db-data
 server/scripts/venv
 server/node_modules
 client/node_modules

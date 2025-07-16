@@ -1,9 +1,9 @@
-import { checksMappingWithPythonFile } from "../api/enterprise/constants.js";
 import path from "path";
 import {UPLOAD_ROOT_DIR, ensureDirectoryExists} from '../constants.js'
-import { runPythonScript } from "./runPython.js";
+import axios from 'axios'
 const name = 'Pdf Edit Forgery'
 const folders = ["Input Files", "Image Files", "Excel Files"]
+
 export async function checkPdfEditForge(requestId, res) {
   const metadata = {};
   const requestIdPath = path.join(UPLOAD_ROOT_DIR, requestId?.toString());
@@ -27,15 +27,7 @@ export async function checkPdfEditForge(requestId, res) {
       // Handle image files if needed
     }
   }
-  console.log(`Metadata for request ${requestId}: checkPdfEditForge`, metadata);
-  const pythonExec = path.join(
-    process.cwd(),
-    "scripts",
-    "venv",
-    "bin",
-    "python"
-  ); // Update path for Windows if needed
-  const scriptPath = path.join(process.cwd(), "scripts", checksMappingWithPythonFile.pdfEditForge);
+  console.log(`Metadata for request ${requestId}: checkDuplicate`, metadata);
   metadata["poppler_path"] = path.join(
     process.cwd(),
     "scripts",
@@ -45,8 +37,6 @@ export async function checkPdfEditForge(requestId, res) {
   );
   const metadataJson = JSON.stringify({ paths: metadata });
   const baseString = Buffer.from(metadataJson).toString("base64");
-
-  const result = await runPythonScript(pythonExec, scriptPath, baseString);
-  console.log('python script output:', result)
-  return result;
+  console.log(baseString)
+  axios.post("http://pdf-edit-forge:8000/check-forge", {content: baseString}).catch(e => console.log(e));
 }

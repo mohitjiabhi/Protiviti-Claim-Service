@@ -105,7 +105,8 @@ export async function handleExecuteChecks(req, res) {
   );
   const promises = [];
   const keys = Object.keys(req.body.checks);
-  keys.forEach((key) => promises.push(checkHandlers[key]));
+  console.log(keys)
+  keys.forEach((key) => promises.push(checkHandlers[key](requestId)));
   await Promise.all(promises);
   res.status(200).send("Check processing completed");
 }
