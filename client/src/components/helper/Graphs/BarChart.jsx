@@ -106,7 +106,7 @@ const BarChart = ({ value1, value2, value3 }) => {
   };
 
   return (
-    <div className="w-full h-24">
+    <div className="w-full h-20">
       <Bar data={data} options={options} width={10} />
     </div>
   );

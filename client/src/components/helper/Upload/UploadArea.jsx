@@ -17,9 +17,11 @@ const UploadArea = ({
   consentChecked,
   uploadFailed = false, // Indicates upload failure
   onUploadAttempt,
+  handleRequestId,
+  fileInputRef, // Receive ref from parent
 }) => (
   <div
-    className="row-span-5 w-full box-border bg-white rounded-[10px] border-2 border-dashed border-[#012386] flex flex-col items-center justify-center relative"
+    className="max-h-66 py-20 w-full box-border bg-white rounded-[10px] border-2 border-dashed border-[#012386] flex flex-col items-center justify-center relative"
     onDrop={(e) => {
       if (!consentChecked) onUploadAttempt();
       handleDrop(e);
@@ -28,9 +30,12 @@ const UploadArea = ({
     onClick={() => !consentChecked && onUploadAttempt()} // Trigger on click (e.g., Browse label click)
   >
     <img className="w-12 h-12" alt="Cloud upload outline" src={uploadIcon} />
-    <div className="text-xs text-gray-400 tracking-[0.50px] leading-[21px] box-border">
+    <div className="text-xs text-gray-400 tracking-[0.50px] leading-[21px] box-border flex text-center gap-1">
       Drag and Drop files or{" "}
-      <label className="text-[#012386] cursor-pointer">
+      <label
+        className="text-[#012386] cursor-pointer flex text-center"
+        onClick={handleRequestId} // Ensure new requestId on every click
+      >
         Browse
         {consentChecked ? (
           <input
@@ -39,6 +44,7 @@ const UploadArea = ({
             className="hidden"
             onChange={handleFileChange}
             accept=".jpg,.jpeg,.png,.pdf,.zip"
+            ref={fileInputRef} // Attach ref to the input
           />
         ) : null}
       </label>

@@ -6,7 +6,7 @@ const ConsentCheckbox = ({
   consentWarning,
   onConsentChange,
 }) => (
-  <div className="relative row-span-1 flex items-center justify-center">
+  <div className="relative flex items-center justify-center">
     <div
       className={`flex gap-2 ${
         consentWarning ? "border-2 border-red-500 rounded-lg p-2" : ""

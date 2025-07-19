@@ -4,7 +4,7 @@ const FieldSelector = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="cols-span-1 w-full row-span-1 bg-white rounded-lg shadow-md flex items-center justify-between px-2 relative group">
+    <div className="cols-span-1 w-full bg-white rounded-lg shadow-md flex items-center justify-between px-2 relative group">
       <div
         className="flex items-center text-center justify-between w-full cursor-pointer"
         onMouseEnter={() => setIsOpen(!isOpen)}

@@ -1,7 +1,7 @@
 import React from "react";
 
 const MetadataOptions = ({ metadataOption, setMetadataOption }) => (
-  <div className="relative row-span-1 flex items-center">
+  <div className="relative flex items-center">
     <div className="text-xs text-black font-semibold">
       Do you want to upload meta-data?
     </div>

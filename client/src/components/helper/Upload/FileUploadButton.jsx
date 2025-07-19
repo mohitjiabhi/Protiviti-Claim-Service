@@ -1,7 +1,7 @@
 import React from "react";
 
 const FileUploadButton = ({ info2, setInfo2, infoIcon }) => (
-  <button className="col-span-1 w-full row-span-1 bg-white rounded-lg shadow-md hover:bg-gray-50 flex items-center justify-between gap-4 px-2">
+  <button className="col-span-1 w-full bg-white rounded-lg shadow-md hover:bg-gray-50 flex items-center justify-between gap-4 px-2">
     <div className="w-4/5 text-xs text-[#3c3c3c] leading-4">
       Upload the file
     </div>

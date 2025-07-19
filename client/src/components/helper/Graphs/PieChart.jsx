@@ -40,6 +40,8 @@ const PieChart = () => {
   };
 
   const pieOptions = {
+    maintainAspectRatio: false, // allow responsive scaling
+    responsive: true,
     plugins: {
       legend: {
         display: false,
@@ -73,15 +75,13 @@ const PieChart = () => {
   };
 
   return (
-    <div className="row-span-4 bg-white rounded-xl shadow p-2 w-full mx-auto items-start justify-start">
-      <h2 className="text-sm font-semibold text-gray-800 mb-4">
-        Pass / Fail Split
-      </h2>
-      <div className="grid grid-flow-col items-center">
-        <div className="w-48 h-48">
+    <div className="bg-white rounded-xl shadow w-full p-2">
+      <h2 className="text-sm font-semibold text-gray-800">Pass / Fail Split</h2>
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="w-full sm:w-2/3 h-56">
           <Pie data={pieData} options={pieOptions} />
         </div>
-        <div className="w-full h-24 grid text-start">
+        <div className="w-full sm:w-1/3 flex items-center justify-center h-24">
           <BarChart value1={2} value2={10} value3={15} />
         </div>
       </div>

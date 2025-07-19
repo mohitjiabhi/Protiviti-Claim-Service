@@ -1,4 +1,4 @@
-import React, { useState, forwardRef } from "react";
+import React, { useState, forwardRef, useEffect, useRef } from "react";
 import axios from "axios";
 import BulkUploadModal from "./Modals/BulkUploadModal";
 import UploadArea from "./Upload/UploadArea";
@@ -16,6 +16,7 @@ import {
   buildStyles,
 } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
+import { getSession } from "../utils/session";
 
 const UploadSection = forwardRef(
   (
@@ -30,7 +31,8 @@ const UploadSection = forwardRef(
   ) => {
     const CHUNK_SIZE = 5 * 1024 * 1024; // 5 MB
     const MAX_INDIVIDUAL_SIZE = 5 * 1024 * 1024; // 5 MB per file (except .zip)
-    const MAX_TOTAL_SIZE = 250 * 1024 * 1024; // 250 MB total
+    const MAX_TOTAL_SIZE = 250 * 1024 * 1024; // 250 MB total for normal upload
+    const BULK_MAX_TOTAL_SIZE = 2048 * 1024 * 1024; // 2 GB for bulk upload
     const [consentChecked, setConsentChecked] = useState(false);
     const [metadataOption, setMetadataOption] = useState("no");
     const [info, setInfo] = useState(false);
@@ -44,20 +46,34 @@ const UploadSection = forwardRef(
       { label: "Size of File Uploaded", value: "0 MB" },
     ]);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [requestId, setRequestId] = useState(Date.now().toString()); // Unique request ID
+    const [requestId, setRequestId] = useState(
+      `${getRandomInt(1000, 1000000)}_${Date.now()}`
+    ); // Unique request ID for display/ref purposes
     const [showMessageModal, setShowMessageModal] = useState(false);
     const [message, setMessage] = useState("");
     const [uploadFailed, setUploadFailed] = useState(false); // Track upload failure
     const [consentWarning, setConsentWarning] = useState(false); // Track consent warning state
+    const fileInputRef = useRef(null); // Ref to reset file input
 
     // Sync local state with prop callback
     React.useEffect(() => {
       setUploadStatus(uploadStatus);
     }, [uploadStatus, setUploadStatus]);
 
+    // Check session validity
+    // useEffect(() => {
+    //   const session = getSession();
+    //   if (!session) {
+    //     setLocalUploadStatus("Session expired. Please restart the session.");
+    //     setMessage("Session expired. Please restart the session.");
+    //     setShowMessageModal(true);
+    //   }
+    // }, []);
+
     React.useImperativeHandle(ref, () => ({
       handleProcessChecks,
       setUploadStatus: setLocalUploadStatus, // Expose setUploadStatus for ref
+      requestId, // Expose requestId for use in HomePage
     }));
 
     const alpha = (Desiredpercentage) => {
@@ -76,6 +92,22 @@ const UploadSection = forwardRef(
       ]);
     };
 
+    const handleRequestId = () => {
+      const newRequestId = `${getRandomInt(1000, 1000000)}_${Date.now()}`;
+      setRequestId(newRequestId);
+      console.log("New Request ID:", newRequestId);
+      return newRequestId;
+    };
+
+    const handleBulkModal = () => {
+      const newRequestId = handleRequestId();
+      if (!consentChecked) {
+        setConsentWarning(true);
+        return;
+      }
+      setIsModalOpen(true);
+    };
+
     const chunkFile = (file) => {
       const chunks = [];
       let start = 0;
@@ -87,31 +119,42 @@ const UploadSection = forwardRef(
       return chunks;
     };
 
+    function getRandomInt(min, max) {
+      min = Math.ceil(min); // Ensure min is an integer
+      max = Math.floor(max); // Ensure max is an integer
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
     const handleUploadChunk = async (
       file,
       chunk,
       index,
       totalChunks,
-      uploadId
+      uploadId,
+      requestId
     ) => {
+      const session = getSession();
+      // if (!session) {
+      //   throw new Error("Session expired during upload.");
+      // }
+
       const formData = new FormData();
       formData.append("chunk", chunk);
       formData.append("index", index.toString());
       formData.append("uploadId", uploadId);
       formData.append("fileName", file.name);
       formData.append("requestId", requestId);
+      formData.append("session", JSON.stringify(session));
+
       if (index === totalChunks - 1) {
         formData.append("totalChunks", totalChunks.toString());
       }
-
       try {
-        await axios.post(
+        const response = await axios.post(
           `http://localhost:5001/enterprise/upload-chunk`,
           formData,
           {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
+            headers: { "Content-Type": "multipart/form-data" },
             onUploadProgress: (progressEvent) => {
               const uploadedBytes = index * CHUNK_SIZE + progressEvent.loaded;
               const totalBytes = file.size;
@@ -122,13 +165,15 @@ const UploadSection = forwardRef(
             },
           }
         );
-        if (index + 1 === totalChunks) {
+
+        if (index + 1 === totalChunks && response.status === 200) {
           setLocalUploadStatus("Files uploaded successfully.");
           setMessage("Files uploaded successfully.");
           setShowMessageModal(true);
           setUploadComplete(true);
-          setUploadFailed(false); // Reset failure on success
+          setUploadFailed(false);
         }
+        return response;
       } catch (error) {
         const errorMessage =
           error.response?.data?.error ||
@@ -143,16 +188,7 @@ const UploadSection = forwardRef(
       }
     };
 
-    const startUpload = async (selectedFiles) => {
-      if (!consentChecked) {
-        setMessage("Please check the consent to upload the file.");
-        setShowMessageModal(true);
-        setConsentWarning(true); // Trigger warning
-        return;
-      }
-
-      setUploadFailed(false); // Reset failure state before upload
-      setConsentWarning(false); // Reset warning when consent is provided
+    const startUpload = async (selectedFiles, requestId) => {
       let uploadedBytes = 0;
       const totalBytes = selectedFiles.reduce(
         (sum, file) => sum + file.size,
@@ -163,14 +199,14 @@ const UploadSection = forwardRef(
         const uploadId = `${file.name}-${Date.now()}`;
         const chunks = chunkFile(file);
         const totalChunks = chunks.length;
-
         for (let index = 0; index < totalChunks; index++) {
           await handleUploadChunk(
             file,
             chunks[index],
             index,
             totalChunks,
-            uploadId
+            uploadId,
+            requestId
           );
           uploadedBytes += chunks[index].size;
           const overallProgress = Math.round(
@@ -179,13 +215,17 @@ const UploadSection = forwardRef(
           setProgress(overallProgress);
         }
       }
-      // Update stats only after all files are successfully uploaded
       if (!uploadFailed) {
         updateStats(selectedFiles);
+      }
+      // Reset file input after upload to allow re-uploading the same file
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
       }
     };
 
     const handleFileChange = async (e) => {
+      const newRequestId = handleRequestId(); // Generate new requestId
       const selectedFiles = Array.from(e.target.files);
       if (selectedFiles.length === 0) {
         setLocalUploadStatus("Please select files to upload.");
@@ -194,7 +234,6 @@ const UploadSection = forwardRef(
         return;
       }
 
-      // Check for oversized non-zip files (5 MB limit applies only to non-zip)
       const oversizedFiles = selectedFiles.filter(
         (file) => !file.name.endsWith(".zip") && file.size > MAX_INDIVIDUAL_SIZE
       );
@@ -209,7 +248,6 @@ const UploadSection = forwardRef(
         return;
       }
 
-      // Check total size limit (250 MB for all files)
       const totalSize = selectedFiles.reduce((sum, file) => sum + file.size, 0);
       if (totalSize > MAX_TOTAL_SIZE) {
         alert(
@@ -223,12 +261,12 @@ const UploadSection = forwardRef(
       }
 
       setFiles(selectedFiles);
-      // Removed updateStats here to prevent premature update
       handleChecksDisplay(true);
-      await startUpload(selectedFiles);
+      await startUpload(selectedFiles, newRequestId);
     };
 
     const handleDrop = async (e) => {
+      const newRequestId = handleRequestId(); // Generate new requestId
       e.preventDefault();
       const droppedFiles = Array.from(e.dataTransfer.files);
       if (droppedFiles.length === 0) {
@@ -238,7 +276,6 @@ const UploadSection = forwardRef(
         return;
       }
 
-      // Check for oversized non-zip files (5 MB limit applies only to non-zip)
       const oversizedFiles = droppedFiles.filter(
         (file) => !file.name.endsWith(".zip") && file.size > MAX_INDIVIDUAL_SIZE
       );
@@ -253,7 +290,6 @@ const UploadSection = forwardRef(
         return;
       }
 
-      // Check total size limit (250 MB for all files)
       const totalSize = droppedFiles.reduce((sum, file) => sum + file.size, 0);
       if (totalSize > MAX_TOTAL_SIZE) {
         alert(
@@ -267,18 +303,29 @@ const UploadSection = forwardRef(
       }
 
       setFiles(droppedFiles);
-      // Removed updateStats here to prevent premature update
       handleChecksDisplay(true);
-      await startUpload(droppedFiles);
+      await startUpload(droppedFiles, newRequestId);
     };
 
-    const handleModalFileSelect = (selectedFiles) => {
+    const handleModalFileSelect = async (selectedFiles) => {
+      const newRequestId = handleRequestId(); // Generate new requestId
+      if (selectedFiles.length === 0) return;
+
+      const totalSize = selectedFiles.reduce((sum, file) => sum + file.size, 0);
+      if (totalSize > BULK_MAX_TOTAL_SIZE) {
+        setMessage("Total upload size exceeds 2 GB limit.");
+        setFiles([]);
+        setProgress(0);
+        return;
+      }
+
       setFiles(selectedFiles);
-      // Removed updateStats here to prevent premature update
+      handleChecksDisplay(true);
+      // await startUpload(selectedFiles, newRequestId);
     };
 
-    const handleProcessChecks = async () => {
-      const selectedChecks = analyticalChecks.filter((check) => check.checked);
+    const handleProcessChecks = async (selectedChecks) => {
+      const newRequestId = handleRequestId(); // Generate new requestId for processing
       if (selectedChecks.length === 0) {
         setLocalUploadStatus("No checks selected for processing.");
         setMessage("No checks selected for processing.");
@@ -286,52 +333,45 @@ const UploadSection = forwardRef(
         return;
       }
 
-      const checksPayload = {
-        requestId,
-        checks: {
-          duplicate: selectedChecks.some((c) => c.id === "deduplication"),
-          pdfEditForge: selectedChecks.some((c) => c.id === "pdf-edit"),
-          metadataCheck: selectedChecks.some((c) => c.id === "metadata"),
-          tamper: selectedChecks.some((c) => c.id === "image-tampering"),
-          copyMoveForge: selectedChecks.some((c) => c.id === "copy-move"),
-          qrCode: selectedChecks.some((c) => c.id === "qr-code"),
-        },
+      const session = getSession();
+      // if (!session) {
+      //   setLocalUploadStatus("Session expired. Please restart the session.");
+      //   setMessage("Session expired. Please restart the session.");
+      //   setShowMessageModal(true);
+      //   return;
+      // }
+
+      const payload = {
+        requestId: newRequestId,
+        checks: selectedChecks,
       };
 
       try {
-        setLocalUploadStatus("Results are generating...");
         const response = await axios.post(
-          `http://localhost:5001/enterprise/process`,
-          checksPayload,
+          `http://localhost:5001/enterprise/bulk-upload-process`,
+          payload,
           {
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
           }
         );
-        setLocalUploadStatus(
-          "Checks processing completed. Results will be emailed."
-        );
-        setMessage("Checks processing completed. Results will be emailed.");
-        setShowMessageModal(true);
-        setProgress(100);
-        setFiles([]);
-        handleChecksDisplay(false);
+        console.log("Bulk process response:", response.data);
+        return response.data;
       } catch (error) {
-        const errorMessage =
+        console.error(
+          "Bulk process error:",
+          error.response ? error.response.data : error.message
+        );
+        throw new Error(
           error.response?.data?.error ||
-          error.message ||
-          "Unknown server error";
-        setLocalUploadStatus(`Check processing failed: ${errorMessage}`);
-        setMessage(`Check processing failed: ${errorMessage}`);
-        setShowMessageModal(true);
-        setProgress(0);
-        console.error("API Error:", error);
+            "Failed to process checks: Server error"
+        );
       }
     };
 
     return (
-      <section className={`relative w-full h-full grid bg-white border border-[#e6e9eb] shadow-lg rounded-lg box-border p-6 gap-2 ${wrapperClassName}`}>
+      <section
+        className={`col-span-1 md:col-span-4 relative w-full h-full bg-white border border-[#e6e9eb] shadow-sm rounded-lg box-border p-6 grid gap-2 md:gap-0`}
+      >
         <UploadArea
           uploadIcon={uploadIcon}
           infoIcon={infoIcon}
@@ -343,24 +383,26 @@ const UploadSection = forwardRef(
           handleFileChange={handleFileChange}
           handleDrop={handleDrop}
           consentChecked={consentChecked}
-          uploadFailed={uploadFailed} // Pass the failure state
-          onUploadAttempt={() => !consentChecked && setConsentWarning(true)} // Notify upload attempt
+          uploadFailed={uploadFailed}
+          onUploadAttempt={() => !consentChecked && setConsentWarning(true)}
+          handleRequestId={handleRequestId}
+          fileInputRef={fileInputRef} // Pass ref to UploadArea
         />
-        <div className="row-span-1 grid items-center">
+        <div className="grid items-center">
           <UploadStats uploadStats={uploadStats} uploadStatus={uploadStatus} />
         </div>
         <ConsentCheckbox
           checked={consentChecked}
           onChange={setConsentChecked}
-          consentWarning={consentWarning} // Pass warning state
-          onConsentChange={() => setConsentWarning(false)} // Reset warning on consent
+          consentWarning={consentWarning}
+          onConsentChange={() => setConsentWarning(false)}
         />
         <div className="flex flex-row justify-between items-center">
           <div className="text-xs w-4/6">
             Please upload here if file size is more than 250MB
           </div>
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={handleBulkModal}
             className="p-2 bg-[#012386] text-white rounded-lg font-semibold text-xs"
           >
             Bulk Upload
@@ -371,7 +413,7 @@ const UploadSection = forwardRef(
           setMetadataOption={setMetadataOption}
         />
         {metadataOption === "yes" && (
-          <div className="row-span-1 grid grid-cols-2 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
             <FileUploadButton
               info2={info2}
               setInfo2={setInfo2}
@@ -386,6 +428,7 @@ const UploadSection = forwardRef(
           onFileSelect={handleModalFileSelect}
           onCheckSubmit={handleProcessChecks}
           analyticalChecks={analyticalChecks}
+          requestId={requestId}
         />
         <UploadMessageModal
           isOpen={showMessageModal}

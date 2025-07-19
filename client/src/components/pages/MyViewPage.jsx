@@ -4,53 +4,109 @@ import BarGraph from "../helper/Graphs/BarGraph";
 import PieChart from "../helper/Graphs/PieChart";
 import TransactionalOutcomeTable from "../helper/Tables/TransactionalOutcomeTable";
 import BarChart from "../helper/Graphs/BarChart";
+import { Link } from "react-router-dom";
+import previousReportData from "../utils/previousReportData";
 
 const MyViewPage = () => {
   return (
-    <div className="bg-[#f3f3f3] h-screen w-full">
-      <div className="w-full h-auto">
-        <div className="relative grid grid-cols-12 min-h-screen">
-          <SideBar activePage="My View" />
-          <div className="relative col-span-10 box-border max-h-screen grid grid-rows-12">
-            <div className="row-span-1">
-              <HeaderSection title="My View" />
-            </div>
-            <div className="relative grid grid-cols-12 row-span-11 gap-4 p-3 max-h-screen overflow-y-auto">
-              <div className="col-span-12 lg:col-span-4 grid grid-rows-10 gap-4">
-                <div className="grid grid-cols-2 row-span-1 gap-2">
-                  <div className="col-span-1 p-2 bg-white gap-2 rounded-md shadow-sm grid grid-cols-2 items-center justify-between">
-                    <div className="grid col-span-1 text-xs font-medium text-left">
-                      Doc checked
-                    </div>
-                    <div className="grid col-span-1 text-xs font-medium p-2 rounded-md bg-[#3CD188] text-white text-center">
-                      42,200
-                    </div>
-                  </div>
-                  <div className="col-span-1 p-2 bg-white rounded-md shadow-sm grid grid-flow-col justify-between items-center gap-2">
-                    <div className="text-xs font-medium text-left">
-                      Data processed
-                    </div>
-                    <div className="text-xs font-medium p-2 rounded-md bg-[#012378] text-white text-center">
-                      1.5GB
-                    </div>
-                  </div>
+    <div className="bg-[#f3f3f3] min-h-screen w-full">
+      <div className="grid grid-cols-1 lg:grid-cols-12 min-h-screen">
+        {/* Sidebar */}
+        <SideBar activePage="My View" />
+
+        {/* Main Content */}
+        <div className="lg:col-span-10 flex flex-col h-full">
+          {/* Header */}
+          <HeaderSection title="My View" />
+
+          {/* Content Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 p-4 overflow-auto h-[calc(100vh-112px)]">
+            {/* Left Section */}
+            <div className="lg:col-span-4 flex flex-col gap-3">
+              <h2 className="text-xl text-[#012378] font-semibold pb-3">
+                Session Outcome
+              </h2>
+
+              {/* Pie + Horizontal BarChart */}
+              <PieChart />
+
+              {/* Checkwise BarGraph */}
+              <BarGraph />
+
+              {/* Previous Reports Table */}
+              <div className="relative bg-white rounded-md shadow-sm py-2">
+                <div className="flex items-center gap-2 pb-2">
+                  <span className="border-2 border-[#012378] rounded-md h-7"></span>
+                  <h3 className="text-sm text-[#012378] font-medium">
+                    Last 10 Reports
+                  </h3>
                 </div>
-                <div className="grid row-span-5 items-center text-[#012378] font-medium w-full ">
-                  Outcome Overview
-                  <PieChart />
-                </div>
-                <div className="grid row-span-5 w-full">
-                  <BarGraph />
+                <div className="relative overflow-y-auto max-h-48 px-2">
+                  <table className="w-full text-xs border border-collapse border-gray-200 text-center">
+                    <thead className="bg-gray-100 sticky top-0">
+                      <tr>
+                        <th className="border p-1">S.No</th>
+                        <th className="border p-1">Report No.</th>
+                        <th className="border p-1">Date & Time</th>
+                        <th className="border p-1">No. of Docs</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previousReportData.map((row, i) => (
+                        <tr key={i}>
+                          <td className="border p-1">{i + 1}</td>
+                          <td className="border p-1">
+                            <Link
+                              to="/my-view"
+                              target="_blank"
+                              className="text-blue-600 underline"
+                            >
+                              {row.report}
+                            </Link>
+                          </td>
+                          <td className="border p-1">{row.dateAndTime}</td>
+                          <td className="border p-1">{row.numberOfDoc}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-              <div className="relative grid col-span-12 lg:col-span-8">
-                <TransactionalOutcomeTable />
+            </div>
+
+            {/* Right Section */}
+            <div className="lg:col-span-8 flex flex-col gap-3 w-full">
+              {/* Stats Boxes */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                <div className="flex items-center justify-between bg-white p-2 rounded-md shadow">
+                  <div className="text-xs font-medium">Docs Checked</div>
+                  <div className="text-xs font-medium bg-[#3CD188] text-white px-2 py-1 rounded">
+                    42,200
+                  </div>
+                </div>
+                <div className="flex items-center justify-between bg-white p-2 rounded-md shadow">
+                  <div className="text-xs font-medium">Data Processed</div>
+                  <div className="text-xs font-medium bg-[#012378] text-white px-2 py-1 rounded">
+                    1.5GB
+                  </div>
+                </div>
+                <div className="flex items-center justify-between bg-white p-2 rounded-md shadow">
+                  <div className="text-xs font-medium">Processing Time</div>
+                  <div className="text-xs font-medium bg-[#012378] text-white px-2 py-1 rounded">
+                    2 Min
+                  </div>
+                </div>
               </div>
+
+              {/* Transactional Outcome Table */}
+              <TransactionalOutcomeTable />
             </div>
-            <div className="text-[#737891] text-xs px-6 grid row-span-1 items-end">
-              * The results provided by this tool are powered by advanced
-              analytics and are subject to user validation and interpretation.
-            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="text-[#737891] text-xs p-4">
+            * The results provided by this tool are powered by advanced
+            analytics and are subject to user validation and interpretation.
           </div>
         </div>
       </div>

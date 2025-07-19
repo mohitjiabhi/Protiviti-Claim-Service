@@ -96,7 +96,7 @@ const BarGraph = () => {
   };
   return (
     <div className="bg-white rounded-md shadow-sm gap-2">
-      <h2 className="text-sm font-medium p-2">Check wise documents failed</h2>
+      <h2 className="text-xs font-medium p-2">Check wise documents failed</h2>
       <Bar data={checkFailureData} options={checkFailureOptions} />
     </div>
   );

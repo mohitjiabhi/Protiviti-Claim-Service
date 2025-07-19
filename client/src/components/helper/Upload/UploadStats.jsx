@@ -1,7 +1,7 @@
 import React from "react";
 
 const UploadStats = ({ uploadStats, uploadStatus }) => (
-  <div className="flex flex-row justify-between">
+  <div className="flex flex-col">
     {uploadStats.map((stat, index) => (
       <div
         key={index}
