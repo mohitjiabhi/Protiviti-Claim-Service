@@ -46,13 +46,15 @@ const UploadSection = forwardRef(
       { label: "Size of File Uploaded", value: "0 MB" },
     ]);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [requestId, setRequestId] = useState(
-      `${getRandomInt(1000, 1000000)}_${Date.now()}`
-    ); // Unique request ID for display/ref purposes
+    const [randomNumber, setRandomNumber] = useState(
+      getRandomInt(1000, 1000000).toString()
+    );
+    const [requestId, setRequestId] = useState(`${randomNumber}_${Date.now()}`);
     const [showMessageModal, setShowMessageModal] = useState(false);
     const [message, setMessage] = useState("");
     const [uploadFailed, setUploadFailed] = useState(false); // Track upload failure
     const [consentWarning, setConsentWarning] = useState(false); // Track consent warning state
+    const [isUploadComplete, setIsUploadComplete] = useState(false); // Track upload completion
     const fileInputRef = useRef(null); // Ref to reset file input
 
     // Sync local state with prop callback
@@ -72,8 +74,8 @@ const UploadSection = forwardRef(
 
     React.useImperativeHandle(ref, () => ({
       handleProcessChecks,
-      setUploadStatus: setLocalUploadStatus, // Expose setUploadStatus for ref
-      requestId, // Expose requestId for use in HomePage
+      setUploadStatus: setLocalUploadStatus,
+      requestId,
     }));
 
     const alpha = (Desiredpercentage) => {
@@ -93,7 +95,7 @@ const UploadSection = forwardRef(
     };
 
     const handleRequestId = () => {
-      const newRequestId = `${getRandomInt(1000, 1000000)}_${Date.now()}`;
+      const newRequestId = `${randomNumber}_${Date.now()}`;
       setRequestId(newRequestId);
       console.log("New Request ID:", newRequestId);
       return newRequestId;
@@ -104,6 +106,19 @@ const UploadSection = forwardRef(
       if (!consentChecked) {
         setConsentWarning(true);
         return;
+      }
+      // Reset form data when modal is reopened
+      setFiles([]);
+      setProgress(0);
+      setUploadFailed(false);
+      setIsUploadComplete(false);
+      setLocalUploadStatus("");
+      setUploadStats([
+        { label: "No of Files Uploaded", value: "0" },
+        { label: "Size of File Uploaded", value: "0 MB" },
+      ]);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
       }
       setIsModalOpen(true);
     };
@@ -120,8 +135,8 @@ const UploadSection = forwardRef(
     };
 
     function getRandomInt(min, max) {
-      min = Math.ceil(min); // Ensure min is an integer
-      max = Math.floor(max); // Ensure max is an integer
+      min = Math.ceil(min);
+      max = Math.floor(max);
       return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
@@ -151,7 +166,7 @@ const UploadSection = forwardRef(
       }
       try {
         const response = await axios.post(
-          `http://localhost:5001/enterprise/upload-chunk`,
+          "http://localhost:5001/enterprise/upload-chunk",
           formData,
           {
             headers: { "Content-Type": "multipart/form-data" },
@@ -172,6 +187,7 @@ const UploadSection = forwardRef(
           setShowMessageModal(true);
           setUploadComplete(true);
           setUploadFailed(false);
+          setIsUploadComplete(true); // Mark upload as complete
         }
         return response;
       } catch (error) {
@@ -183,7 +199,7 @@ const UploadSection = forwardRef(
         setMessage(`Upload failed: ${errorMessage}`);
         setShowMessageModal(true);
         setProgress(0);
-        setUploadFailed(true); // Set failure state on error
+        setUploadFailed(true);
         console.error("API Error:", error);
       }
     };
@@ -218,14 +234,13 @@ const UploadSection = forwardRef(
       if (!uploadFailed) {
         updateStats(selectedFiles);
       }
-      // Reset file input after upload to allow re-uploading the same file
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
     };
 
     const handleFileChange = async (e) => {
-      const newRequestId = handleRequestId(); // Generate new requestId
+      const newRequestId = handleRequestId();
       const selectedFiles = Array.from(e.target.files);
       if (selectedFiles.length === 0) {
         setLocalUploadStatus("Please select files to upload.");
@@ -266,7 +281,7 @@ const UploadSection = forwardRef(
     };
 
     const handleDrop = async (e) => {
-      const newRequestId = handleRequestId(); // Generate new requestId
+      const newRequestId = handleRequestId();
       e.preventDefault();
       const droppedFiles = Array.from(e.dataTransfer.files);
       if (droppedFiles.length === 0) {
@@ -308,7 +323,7 @@ const UploadSection = forwardRef(
     };
 
     const handleModalFileSelect = async (selectedFiles) => {
-      const newRequestId = handleRequestId(); // Generate new requestId
+      const newRequestId = handleRequestId();
       if (selectedFiles.length === 0) return;
 
       const totalSize = selectedFiles.reduce((sum, file) => sum + file.size, 0);
@@ -325,7 +340,7 @@ const UploadSection = forwardRef(
     };
 
     const handleProcessChecks = async (selectedChecks) => {
-      const newRequestId = handleRequestId(); // Generate new requestId for processing
+      const newRequestId = handleRequestId();
       if (selectedChecks.length === 0) {
         setLocalUploadStatus("No checks selected for processing.");
         setMessage("No checks selected for processing.");
@@ -348,7 +363,7 @@ const UploadSection = forwardRef(
 
       try {
         const response = await axios.post(
-          `http://localhost:5001/enterprise/bulk-upload-process`,
+          "http://localhost:5001/enterprise/bulk-upload-process",
           payload,
           {
             headers: { "Content-Type": "application/json" },
@@ -367,10 +382,25 @@ const UploadSection = forwardRef(
         );
       }
     };
+    const handleRefresh = () => {
+      setFiles([]);
+      setProgress(0);
+      setUploadFailed(false);
+      setIsUploadComplete(false);
+      setLocalUploadStatus("");
+      setUploadStats([
+        { label: "No of Files Uploaded", value: "0" },
+        { label: "Size of File Uploaded", value: "0 MB" },
+      ]);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      setUploadComplete(false); // Reset parent state
+    };
 
     return (
       <section
-        className={`col-span-1 md:col-span-4 relative w-full h-full bg-white border border-[#e6e9eb] shadow-sm rounded-lg box-border p-6 grid gap-2 md:gap-0`}
+        className={`col-span-1 md:col-span-4 relative w-full h-full bg-white border border-[#e6e9eb] shadow-sm rounded-lg box-border p-6 grid gap-2 md:gap-0 ${wrapperClassName}`}
       >
         <UploadArea
           uploadIcon={uploadIcon}
@@ -386,7 +416,9 @@ const UploadSection = forwardRef(
           uploadFailed={uploadFailed}
           onUploadAttempt={() => !consentChecked && setConsentWarning(true)}
           handleRequestId={handleRequestId}
-          fileInputRef={fileInputRef} // Pass ref to UploadArea
+          fileInputRef={fileInputRef}
+          isUploadComplete={isUploadComplete}
+          onRefresh={handleRefresh}
         />
         <div className="grid items-center">
           <UploadStats uploadStats={uploadStats} uploadStatus={uploadStatus} />
@@ -428,7 +460,7 @@ const UploadSection = forwardRef(
           onFileSelect={handleModalFileSelect}
           onCheckSubmit={handleProcessChecks}
           analyticalChecks={analyticalChecks}
-          requestId={requestId}
+          randomNumber={randomNumber}
         />
         <UploadMessageModal
           isOpen={showMessageModal}

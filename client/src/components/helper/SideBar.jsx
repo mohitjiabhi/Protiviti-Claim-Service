@@ -139,7 +139,7 @@ const SideBar = () => {
       </div>
 
       <button
-        className="row-span-3 flex items-center gap-2.5 p-3 rounded-[7px] w-full justify-start hover:text-[#012386] hover:bg-[#023eed1a] text-[#737891] hover:bg-gray-50"
+        className="row-span-3 flex items-center gap-2.5 p-3 rounded-[7px] w-full justify-start hover:text-[#012386] text-[#737891] "
         onClick={() => {}}
         onMouseEnter={() => setIsHover(true)}
         onMouseLeave={() => setIsHover(false)}

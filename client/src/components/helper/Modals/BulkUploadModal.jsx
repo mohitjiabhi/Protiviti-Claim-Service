@@ -19,6 +19,7 @@ const BulkUploadModal = ({
   onFileSelect,
   onCheckSubmit,
   analyticalChecks,
+  randomNumber,
 }) => {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [selectedChecks, setSelectedChecks] = useState(
@@ -73,9 +74,7 @@ const BulkUploadModal = ({
       }
 
       // Generate new requestId for this upload
-      const newRequestId = `${Math.floor(
-        Math.random() * 1000000
-      )}_${Date.now()}`;
+      const newRequestId = `${randomNumber}_${Date.now()}`;
       console.log("New Request ID for Bulk Upload:", newRequestId);
 
       // Upload files with new requestId
@@ -182,6 +181,17 @@ const BulkUploadModal = ({
     setError("");
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current); // Clear timeout on modal close
+    }
+    setSelectedFiles([]);
+    setSelectedChecks(
+      analyticalChecks.map((check) => ({
+        ...check,
+        checked: check.checked || false,
+        description: check.description.split(" ").slice(0, 5).join(" ") + "...",
+      }))
+    );
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
     onClose();
   };

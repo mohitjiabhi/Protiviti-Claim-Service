@@ -3,6 +3,7 @@ import {
   CircularProgressbarWithChildren,
   buildStyles,
 } from "react-circular-progressbar";
+import { FaSyncAlt } from "react-icons/fa";
 
 const UploadArea = ({
   uploadIcon,
@@ -15,39 +16,65 @@ const UploadArea = ({
   handleFileChange,
   handleDrop,
   consentChecked,
-  uploadFailed = false, // Indicates upload failure
+  uploadFailed = false,
   onUploadAttempt,
   handleRequestId,
-  fileInputRef, // Receive ref from parent
+  fileInputRef,
+  isUploadComplete,
+  onRefresh,
 }) => (
   <div
-    className="max-h-66 py-20 w-full box-border bg-white rounded-[10px] border-2 border-dashed border-[#012386] flex flex-col items-center justify-center relative"
+    className={`max-h-66 py-20 w-full box-border bg-white rounded-[10px] border-2 border-dashed ${
+      isUploadComplete
+        ? "border-gray-300 cursor-not-allowed"
+        : "border-[#012386] cursor-pointer"
+    } flex flex-col items-center justify-center relative`}
     onDrop={(e) => {
       if (!consentChecked) onUploadAttempt();
-      handleDrop(e);
+      if (!isUploadComplete) handleDrop(e);
     }}
     onDragOver={(e) => e.preventDefault()}
-    onClick={() => !consentChecked && onUploadAttempt()} // Trigger on click (e.g., Browse label click)
+    onClick={() => {
+      if (!consentChecked) onUploadAttempt();
+      if (!isUploadComplete) handleRequestId();
+    }}
   >
     <img className="w-12 h-12" alt="Cloud upload outline" src={uploadIcon} />
-    <div className="text-xs text-gray-400 tracking-[0.50px] leading-[21px] box-border flex text-center gap-1">
-      Drag and Drop files or{" "}
-      <label
-        className="text-[#012386] cursor-pointer flex text-center"
-        onClick={handleRequestId} // Ensure new requestId on every click
-      >
-        Browse
-        {consentChecked ? (
-          <input
-            type="file"
-            multiple
-            className="hidden"
-            onChange={handleFileChange}
-            accept=".jpg,.jpeg,.png,.pdf,.zip"
-            ref={fileInputRef} // Attach ref to the input
-          />
-        ) : null}
-      </label>
+    <div className="text-xs text-gray-400 tracking-[0.50px] leading-[21px] box-border flex text-center gap-1 flex-col">
+      <div className="flex gap-2">
+        Drag and Drop files or{" "}
+        <label
+          className={`text-[#012386]  ${
+            isUploadComplete
+              ? "cursor-not-allowed"
+              : "cursor-pointer hover:font-semibold"
+          } flex text-center`}
+        >
+          Browse
+          {consentChecked && !isUploadComplete ? (
+            <input
+              type="file"
+              multiple
+              className="hidden"
+              onChange={handleFileChange}
+              accept=".jpg,.jpeg,.png,.pdf,.zip"
+              ref={fileInputRef}
+              disabled={isUploadComplete}
+            />
+          ) : null}
+        </label>
+      </div>
+      {isUploadComplete && (
+        <button
+          onClick={onRefresh}
+          className="flex justify-center items-center gap-2 text-[#012378] font-medium text-xs rounded hover:font-semibold"
+        >
+          <span>Refresh Upload</span>
+          <span>
+            <FaSyncAlt />
+          </span>
+        </button>
+      )}
     </div>
     <div className="absolute left-2 bottom-2">
       <div className="w-5 h-5 bg-[#ececec] rounded-[80px] flex items-center justify-center">
@@ -77,24 +104,21 @@ const UploadArea = ({
     </div>
     <div className="absolute w-8 h-8 right-1 bottom-1">
       <CircularProgressbarWithChildren
-        value={uploadFailed ? 0 : progress} // Reset to 0 on failure
+        value={uploadFailed ? 0 : progress}
         strokeWidth="14"
-        text={
-          uploadFailed ? "X" : progress === 100 ? "" : `${progress}%` // Only show percentage during progress
-        }
+        text={uploadFailed ? "X" : progress === 100 ? "" : `${progress}%`}
         styles={buildStyles({
           rotation: 0.25,
           strokeLinecap: "butt",
           textSize: "25px",
           pathTransitionDuration: 0.5,
           pathColor: uploadFailed ? "red" : alpha(progress),
-          trailColor: uploadFailed ? "#e0e0e0" : "#d6d6d6", // Dull trail on failure
+          trailColor: uploadFailed ? "#e0e0e0" : "#d6d6d6",
         })}
       >
         {!uploadFailed && progress === 100 && (
           <img src={greenTickIcon} alt="tick" width="15" />
-        )}{" "}
-        {/* Show tick only on success */}
+        )}
       </CircularProgressbarWithChildren>
     </div>
   </div>
