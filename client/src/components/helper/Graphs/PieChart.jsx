@@ -77,11 +77,11 @@ const PieChart = () => {
   return (
     <div className="bg-white rounded-xl shadow w-full p-2">
       <h2 className="text-sm font-semibold text-gray-800">Pass / Fail Split</h2>
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="w-full sm:w-2/3 h-56">
+      <div className="flex flex-col sm:flex-row items-center justify-between">
+        <div className="w-full sm:w-3/5 h-56">
           <Pie data={pieData} options={pieOptions} />
         </div>
-        <div className="w-full sm:w-1/3 flex items-center justify-center h-24">
+        <div className="w-full sm:w-2/5 flex items-center justify-center h-24">
           <BarChart value1={2} value2={10} value3={15} />
         </div>
       </div>

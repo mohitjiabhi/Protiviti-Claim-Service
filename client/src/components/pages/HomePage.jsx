@@ -77,31 +77,31 @@ const HomePage = () => {
         // }
 
         // Add session data to the payload
-        // const checksPayload = {
-        //   requestId: uploadSectionRef.current.requestId, // Assuming requestId is accessible
-        //   checks: {
-        //     duplicate: checks.some(
-        //       (c) => c.id === "deduplication" && c.checked
-        //     ),
-        //     pdfEditForge: checks.some((c) => c.id === "pdf-edit" && c.checked),
-        //     metadataCheck: checks.some((c) => c.id === "metadata" && c.checked),
-        //     tamper: checks.some((c) => c.id === "image-tampering" && c.checked),
-        //     copyMoveForge: checks.some(
-        //       (c) => c.id === "copy-move" && c.checked
-        //     ),
-        //     qrCode: checks.some((c) => c.id === "qr-code" && c.checked),
-        //   },
-        // };
+        const checksPayload = {
+          requestId: uploadSectionRef.current.requestId, // Assuming requestId is accessible
+          checks: {
+            duplicate: checks.some(
+              (c) => c.id === "deduplication" && c.checked
+            ),
+            pdfEditForge: checks.some((c) => c.id === "pdf-edit" && c.checked),
+            metadataCheck: checks.some((c) => c.id === "metadata" && c.checked),
+            tamper: checks.some((c) => c.id === "image-tampering" && c.checked),
+            copyMoveForge: checks.some(
+              (c) => c.id === "copy-move" && c.checked
+            ),
+            qrCode: checks.some((c) => c.id === "qr-code" && c.checked),
+          },
+        };
 
-        // await axios.post(
-        //   `http://localhost:5001/enterprise/process`,
-        //   checksPayload,
-        //   {
-        //     headers: {
-        //       "Content-Type": "application/json",
-        //     },
-        //   }
-        // );
+        await axios.post(
+          `http://localhost:5001/enterprise/process`,
+          checksPayload,
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
         // Simulate loader with delay
         setTimeout(() => {
           setLoading(false);

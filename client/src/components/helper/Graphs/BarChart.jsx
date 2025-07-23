@@ -86,10 +86,23 @@ const BarChart = ({ value1, value2, value3 }) => {
       title: {
         display: false,
       },
+      datalabels: {
+        color: "#fff",
+        anchor: "center",
+        align: "center",
+        font: {
+          weight: "bold",
+          size: 8,
+        },
+      },
       tooltip: {
         enabled: true,
-        displayColors: false,
-
+        displayColors: true,
+        boxWidth: 10,
+        boxheight: 10,
+        cornerRadius: 6,
+        bodyAlign: "left",
+        caretPadding: 10,
         callbacks: {
           title: () => "",
           label: (context) => {

@@ -69,7 +69,7 @@ const UploadArea = ({
           onClick={onRefresh}
           className="flex justify-center items-center gap-2 text-[#012378] font-medium text-xs rounded hover:font-semibold"
         >
-          <span>Refresh Upload</span>
+          <span>Discard Upload</span>
           <span>
             <FaSyncAlt />
           </span>
