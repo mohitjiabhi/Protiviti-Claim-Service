@@ -26,6 +26,7 @@ const UploadSection = forwardRef(
       setUploadComplete,
       setUploadStatus,
       wrapperClassName = "",
+      setResponseData
     },
     ref
   ) => {
@@ -182,6 +183,7 @@ const UploadSection = forwardRef(
         );
 
         if (index + 1 === totalChunks && response.status === 200) {
+          setResponseData(response.data.data);
           setLocalUploadStatus("Files uploaded successfully.");
           setMessage("Files uploaded successfully.");
           setShowMessageModal(true);

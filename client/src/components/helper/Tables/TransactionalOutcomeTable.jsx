@@ -92,16 +92,12 @@ const TransactionalOutcomeTable = () => {
                     className="box-border px-2 py-2 border border-gray-200"
                   >
                     {status === "pass" ? (
-                      <FontAwesomeIcon
-                        icon={faThumbsUp}
-                        className="text-green-500 w-4 h-4"
-                      />
+                      <button onClick={() => handleThumbsDownClick(row.url)}>
+                        <div className="border rounded-full p-2 bg-green-500 shadow-sm"></div>
+                      </button>
                     ) : status === "fail" ? (
                       <button onClick={() => handleThumbsDownClick(row.url)}>
-                        <FontAwesomeIcon
-                          icon={faThumbsDown}
-                          className="text-red-500 w-4 h-4"
-                        />
+                        <div className="border rounded-full p-2 bg-red-500 shadow-sm"></div>
                       </button>
                     ) : (
                       "-"

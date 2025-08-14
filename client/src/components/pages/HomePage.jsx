@@ -16,6 +16,7 @@ const HomePage = () => {
   const [checksDisplay, setChecksDisplay] = useState(false);
   const [uploadComplete, setUploadComplete] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [responseData, setResponseData] = useState({});
   const navigate = useNavigate();
   const uploadSectionRef = useRef(null);
 
@@ -91,6 +92,7 @@ const HomePage = () => {
             ),
             qrCode: checks.some((c) => c.id === "qr-code" && c.checked),
           },
+          checksJsonColl: responseData
         };
 
         await axios.post(
@@ -136,6 +138,7 @@ const HomePage = () => {
                     uploadSectionRef.current.setUploadStatus(status);
                   }
                 }}
+                setResponseData={setResponseData}
               />
               <div className="relative h-full col-span-1 md:col-span-8 bg-white box-border border border-[#e6e9eb] shadow-sm rounded-lg">
                 <div className="relative box-border p-6 gap-4 grid grid-flow-row">

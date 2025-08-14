@@ -96,14 +96,11 @@ const LineGraph = () => {
   };
 
   return (
-    <div
-      className="relative bg-white rounded-md p-4 shadow-sm w-full"
-      style={{ height: "260px" }}
-    >
+    <div className="relative bg-white rounded-md p-4 shadow-sm w-full grid">
       <h2 className="text-sm font-medium mb-2">
         Month on month trend of user wise exceptions
       </h2>
-      <div className="w-full h-[200px]">
+      <div className="w-full h-[250px]">
         <Line data={data} options={options} />
       </div>
     </div>

@@ -43,10 +43,10 @@ const DateFilter = ({ onRangeSelect }) => {
   };
 
   return (
-    <div className="relative z-50" ref={filterRef}>
+    <div className="relative z-50 " ref={filterRef}>
       <button
         onClick={() => setShowFilterPanel(!showFilterPanel)}
-        className="flex items-center justify-between gap-2 text-sm px-4 py-2 w-full rounded-md bg-white border shadow-sm"
+        className="flex items-center justify-between gap-2 text-sm p-2 w-full h-full font-medium rounded-md bg-white shadow-sm"
       >
         <span className="font-medium">{selectedOption}</span>
         <CalendarIcon className="h-5 w-5 text-gray-500" />

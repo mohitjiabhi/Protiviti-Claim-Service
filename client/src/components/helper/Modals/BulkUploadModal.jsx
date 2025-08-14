@@ -311,8 +311,7 @@ const BulkUploadModal = ({
       ) : (
         <div className="bg-white rounded-lg p-6 w-full max-w-md">
           <h2 className="text-md text-center font-semibold text-gray-800 mb-4 h-full">
-            Thanks for submitting the request. You will get the report over the
-            email and can also be viewed on My View page.
+            Thanks for your request. The report will be emailed to you and is also available on the My View page.
           </h2>
           <div className="flex justify-center gap-2">
             <button

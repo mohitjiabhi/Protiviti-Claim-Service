@@ -78,19 +78,19 @@ const MyViewPage = () => {
             <div className="lg:col-span-8 flex flex-col gap-3 w-full">
               {/* Stats Boxes */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                <div className="flex items-center justify-between bg-white p-2 rounded-md shadow">
+                <div className="flex items-center justify-between bg-white p-2 py-1 rounded-md shadow">
                   <div className="text-xs font-medium">Docs Checked</div>
                   <div className="text-xs font-medium bg-[#3CD188] text-white px-2 py-1 rounded">
                     42,200
                   </div>
                 </div>
-                <div className="flex items-center justify-between bg-white p-2 rounded-md shadow">
+                <div className="flex items-center justify-between bg-white p-2 py-1 rounded-md shadow">
                   <div className="text-xs font-medium">Data Processed</div>
                   <div className="text-xs font-medium bg-[#012378] text-white px-2 py-1 rounded">
                     1.5GB
                   </div>
                 </div>
-                <div className="flex items-center justify-between bg-white p-2 rounded-md shadow">
+                <div className="flex items-center justify-between bg-white p-2 py-1 rounded-md shadow">
                   <div className="text-xs font-medium">Processing Time</div>
                   <div className="text-xs font-medium bg-[#012378] text-white px-2 py-1 rounded">
                     2 Min

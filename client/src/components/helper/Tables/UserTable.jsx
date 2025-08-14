@@ -8,7 +8,7 @@ const UserTable = ({ title, tableData, tableHeaders }) => {
         <span className="border-2 border-[#012378] rounded-md"></span>
         <span className="text-md font-medium text-[#012378] p-1">{title}</span>
       </div>
-      <div className="my-2 overflow-y-auto rounded-md px-2 pb-2">
+      <div className="overflow-y-auto rounded-md px-2 pb-3">
         <table className="min-w-full text-xs text-gray-800 font-normal border-collapse text-center rounded-md border border-gray-200">
           <thead className="sticky top-0 bg-gray-100 text-xs font-light text-gray-600">
             <tr>

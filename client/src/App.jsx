@@ -4,6 +4,8 @@ import LandingPage from "./components/pages/LandingPage";
 import Homepage from "./components/pages/HomePage"; // Ensure you have a Homepage component
 import MyViewPage from "./components/pages/MyViewPage";
 import AdminPage from "./components/pages/AdminPage";
+import SuperAdminPage from "./components/pages/SuperAdminPage";
+import ApiViewPage from "./components/pages/ApiViewPage";
 
 function App() {
   return (
@@ -13,6 +15,8 @@ function App() {
         <Route path="/home" element={<Homepage />} />
         <Route path="/my-view" element={<MyViewPage />} />
         <Route path="/admin-view" element={<AdminPage />} />
+        <Route path="/super-admin-view" element={<SuperAdminPage />} />
+        <Route path="/api-view" element={<ApiViewPage />} />
       </Routes>
     </Router>
   );

@@ -40,10 +40,10 @@ const LandingPage = () => {
   return (
     <div className="grid grid-flow-row grid-cols-12 items-center justify-center h-screen bg-gray-100 w-full font-roboto">
       <div
-        className={`col-span-8 border-black h-full bg-cover bg-center bg-blue-500`}
+        className={`col-span-7 border-black h-full bg-cover bg-center bg-blue-500`}
         style={{ backgroundImage: `url(${landingpageImg})` }}
       >
-        <div className="absolute w-2/3 inset-0 bg-[#00264499]" />
+        <div className="absolute w-7/12 inset-0 bg-[#00264499]" />
         <img
           src={marutiWhiteLogo}
           alt="Maruti Logo"
@@ -51,7 +51,7 @@ const LandingPage = () => {
           className="absolute h-10 object-contain pl-4 pt-4"
         />
       </div>
-      <div className="col-span-4 h-screen items-center justify-center text-center">
+      <div className="col-span-5 h-screen items-center justify-center text-center">
         <div className="flex flex-col justify-center items-center h-full gap-4">
           <img
             src={deLogo}

@@ -88,3 +88,4 @@ export default [
     checks: ["pass", "pass", "fail", "pass", "-", "fail"],
   },
 ];
+

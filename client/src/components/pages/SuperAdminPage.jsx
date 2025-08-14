@@ -13,10 +13,10 @@ const AdminPage = () => {
     <div className="bg-[#f3f3f3] min-h-screen w-full">
       <div className="w-full h-auto">
         <div className="relative grid grid-cols-12 min-h-screen">
-          <SideBar activePage="Admin View" />
+          <SideBar activePage="Super Admin View" />
 
           <div className="relative col-span-10 grid grid-rows-[auto_1fr_auto] h-screen overflow-hidden">
-            <HeaderSection title="Admin View" />
+            <HeaderSection title="Super Admin View" />
 
             <div className="p-4 overflow-y-auto grid grid-cols-12 gap-2">
               {/* Filters and KPIs */}
@@ -54,7 +54,7 @@ const AdminPage = () => {
               <div className="col-span-12 lg:col-span-8 flex flex-col gap-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <UserTable
-                    title="Most active user"
+                    title="Most active department"
                     tableData={activeUserData}
                     tableHeaders={[
                       "User Name",
@@ -63,7 +63,7 @@ const AdminPage = () => {
                     ]}
                   />
                   <UserTable
-                    title="Most in-active user"
+                    title="Most in-active department"
                     tableData={activeUserData}
                     tableHeaders={[
                       "User Name",
@@ -72,9 +72,9 @@ const AdminPage = () => {
                     ]}
                   />
                 </div>
-                {/* <div className="w-full"> */}
-                <LineGraph />
-                {/* </div> */}
+                <div className="w-full">
+                  <LineGraph />
+                </div>
               </div>
             </div>
 
